@@ -51,7 +51,7 @@ func Provider(version string) func() *schema.Provider {
 					Required:    false,
 					Sensitive:   true,
 					DefaultFunc: schema.EnvDefaultFunc("GRAFANA_PROXY_AUTH", nil),
-					Description: "API token or basic auth username:password. May alternatively be set via the `GRAFANA_PROXY_AUTH` environment variable.",
+					Description: "API token. May alternatively be set via the `GRAFANA_PROXY_AUTH` environment variable.",
 				},
 				"org_id": {
 					Type:        schema.TypeInt,
