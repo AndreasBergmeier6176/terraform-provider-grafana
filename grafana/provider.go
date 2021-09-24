@@ -46,6 +46,13 @@ func Provider(version string) func() *schema.Provider {
 					DefaultFunc: schema.EnvDefaultFunc("GRAFANA_AUTH", nil),
 					Description: "API token or basic auth username:password. May alternatively be set via the `GRAFANA_AUTH` environment variable.",
 				},
+				"proxy_auth": {
+					Type:        schema.TypeString,
+					Required:    false,
+					Sensitive:   true,
+					DefaultFunc: schema.EnvDefaultFunc("GRAFANA_PROXY_AUTH", nil),
+					Description: "API token or basic auth username:password. May alternatively be set via the `GRAFANA_PROXY_AUTH` environment variable.",
+				},
 				"org_id": {
 					Type:        schema.TypeInt,
 					Required:    true,
@@ -130,6 +137,10 @@ func Provider(version string) func() *schema.Provider {
 type client struct {
 	gapi  *gapi.Client
 	smapi *smapi.Client
+	Proxy struct {
+		BasicAuth string
+		APIKey string
+	}
 }
 
 func configure(version string, p *schema.Provider) func(context.Context, *schema.ResourceData) (interface{}, diag.Diagnostics) {
@@ -140,6 +151,11 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 		c := &client{}
 
 		auth := strings.SplitN(d.Get("auth").(string), ":", 2)
+		pa := d.Get("proxy_auth")
+		var proxyAuth []string
+		if pa != nil {
+			proxyAuth = strings.SplitN(d.Get("auth").(string), ":", 2)
+		}
 		cli := cleanhttp.DefaultClient()
 		transport := cleanhttp.DefaultTransport()
 		transport.TLSClientConfig = &tls.Config{}
@@ -178,6 +194,11 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 			cfg.BasicAuth = url.UserPassword(auth[0], auth[1])
 		} else {
 			cfg.APIKey = auth[0]
+		}
+		if len(proxyAuth) == 2 {
+			c.Proxy.BasicAuth = url.UserPassword(proxyAuth[0], proxyAuth[1])
+		} else {
+			c.Proxy.APIKey = proxyAuth[0]
 		}
 		gclient, err := gapi.New(d.Get("url").(string), cfg)
 		if err != nil {
