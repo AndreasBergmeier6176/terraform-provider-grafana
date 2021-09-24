@@ -137,10 +137,6 @@ func Provider(version string) func() *schema.Provider {
 type client struct {
 	gapi  *gapi.Client
 	smapi *smapi.Client
-	Proxy struct {
-		BasicAuth string
-		APIKey string
-	}
 }
 
 func configure(version string, p *schema.Provider) func(context.Context, *schema.ResourceData) (interface{}, diag.Diagnostics) {
@@ -152,9 +148,9 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 
 		auth := strings.SplitN(d.Get("auth").(string), ":", 2)
 		pa := d.Get("proxy_auth")
-		var proxyAuth []string
+		var proxyAuth string
 		if pa != nil {
-			proxyAuth = strings.SplitN(d.Get("auth").(string), ":", 2)
+			proxyAuth = d.Get("proxy_auth").(string)
 		}
 		cli := cleanhttp.DefaultClient()
 		transport := cleanhttp.DefaultTransport()
@@ -195,10 +191,8 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 		} else {
 			cfg.APIKey = auth[0]
 		}
-		if len(proxyAuth) == 2 {
-			c.Proxy.BasicAuth = url.UserPassword(proxyAuth[0], proxyAuth[1])
-		} else {
-			c.Proxy.APIKey = proxyAuth[0]
+		if proxyAuth != "" {
+			cfg.Proxy.APIKey = proxyAuth
 		}
 		gclient, err := gapi.New(d.Get("url").(string), cfg)
 		if err != nil {
